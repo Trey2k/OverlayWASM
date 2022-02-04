@@ -1,13 +1,13 @@
 package overlay
 
+import "syscall/js"
+
 type OverlayModuleType int
 
 const (
 	InvalidModule = OverlayModuleType(iota)
 	AlertBoxModule
 )
-
-type EventType int
 
 type ModuleInfo struct {
 	ID     int
@@ -22,26 +22,10 @@ type ModuleInfo struct {
 type Module interface {
 	GetInfo() *ModuleInfo
 	SendEvent(event *EventStruct)
-}
-
-type EventStruct struct {
-	Type EventType
-	Data TwitchEventStruct
-}
-
-const (
-	InvalidEvent = EventType(iota)
-	TestEvent
-	TwitchMessageEvent
-	TwitchFollow
-)
-
-type TwitchEventStruct struct {
-	Channel        string
-	DisplayName    string
-	ProfilePicture string
-	UserID         string
-	MessageContent string
+	GetElement() js.Value
+	Destroy()
+	Update()
+	UpdateInfo(*ModuleInfo)
 }
 
 func NewModule(moduleInfo *ModuleInfo, editorMode bool) Module {

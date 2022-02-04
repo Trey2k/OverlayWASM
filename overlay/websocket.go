@@ -24,7 +24,8 @@ type MessageStruct struct {
 const (
 	InvalidMessage = MessageType(iota)
 	GetOverlay
-	Return
+	OverlayInfo
+	SaveOverlay
 )
 
 func newWebsocket(conURL string) *WebsocketConn {
@@ -65,7 +66,7 @@ func (conn *WebsocketConn) Error(this js.Value, args []js.Value) interface{} {
 func (conn *WebsocketConn) Message(this js.Value, args []js.Value) interface{} {
 	event := args[0]
 	data := event.Get("data").String()
-
+	
 	msg := &MessageStruct{}
 	err := json.Unmarshal([]byte(data), msg)
 	if err != nil {

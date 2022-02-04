@@ -4,24 +4,33 @@ import (
 	"syscall/js"
 )
 
-var LoadingActive = true
+var IsLoading = true
 
 func StartLoading() {
+	if IsLoading {
+		return
+	}
+	IsLoading = true
+
 	jquery := js.Global().Get("$")
 	if !jquery.Equal(js.Undefined()) {
-		jquery.Invoke("#loadingScreen").Call("fadeIn", "slow")
-		jquery.Invoke("#actions").Call("fadeOut", "slow")
+		jquery.Invoke("#loadingScreen").Call("fadeIn", "fast")
+		jquery.Invoke("#actions").Call("fadeOut", "fast")
 		jquery.Invoke("#loadingIndicator").Call("addClass", "active")
 	}
-	LoadingActive = true
+
 }
 
 func StopLoading() {
-	LoadingActive = false
+	if !IsLoading {
+		return
+	}
+	IsLoading = false
+
 	jquery := js.Global().Get("$")
 	if !jquery.Equal(js.Undefined()) {
-		jquery.Invoke("#loadingScreen").Call("fadeOut", "slow")
-		jquery.Invoke("#actions").Call("fadeIn", "slow")
-		jquery.Invoke("#loadingIndicator").Call("fadeOut", "slow")
+		jquery.Invoke("#loadingScreen").Call("fadeOut", "fast")
+		jquery.Invoke("#actions").Call("fadeIn", "fast")
+		jquery.Invoke("#loadingIndicator").Call("fadeOut", "fast")
 	}
 }

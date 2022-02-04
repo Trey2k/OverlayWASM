@@ -2,18 +2,20 @@ package overlay
 
 import (
 	"fmt"
+	"strconv"
 	"syscall/js"
 )
 
 type AlertBox struct {
-	ID        int
-	Info      *ModuleInfo
-	busy      bool
-	eventChan chan *EventStruct
-	elm       js.Value
+	ID     int
+	Info   *ModuleInfo
+	busy   bool
+	events []*EventStruct
+	elm    js.Value
+	isNew  bool
 }
 
-func newAlertBox(id, top, left, width, height int) *AlertBox {
+func newAlertBox(id, top, left, width, height int, isNew bool) *AlertBox {
 	return initAlertBox(&ModuleInfo{
 		ID:     id,
 		Type:   AlertBoxModule,
@@ -21,29 +23,29 @@ func newAlertBox(id, top, left, width, height int) *AlertBox {
 		Left:   left,
 		Width:  width,
 		Height: height,
-		IsNew:  true,
+		IsNew:  isNew,
 	}, true)
 }
 
 func initAlertBox(moduleInfo *ModuleInfo, editorMode bool) *AlertBox {
 	alertBox := &AlertBox{
-		ID:        moduleInfo.ID,
-		Info:      moduleInfo,
-		eventChan: make(chan *EventStruct, 1),
+		ID:    moduleInfo.ID,
+		Info:  moduleInfo,
+		isNew: moduleInfo.IsNew,
 	}
 
 	jquery := js.Global().Get("$")
-	if jquery.Equal(js.Undefined()) {
-		fmt.Println("jquery not found")
-		return nil
+	newClass := ""
+	if alertBox.isNew {
+		newClass = "new"
 	}
 
 	jquery.Invoke(".modules").Call("append", fmt.Sprintf(`
-	<div class="module" id=%[1]d>
-		<div class="alertBox" id=%[1]d>
+	<div class="module %[2]s" id=%[1]d>
+		<div class="alertBox %[2]s" id=%[1]d>
 		</div>
 	</div>
-`, alertBox.ID))
+`, alertBox.ID, newClass))
 
 	alertBox.elm = jquery.Invoke(fmt.Sprintf(".module#%d", alertBox.ID))
 
@@ -69,6 +71,7 @@ func initAlertBox(moduleInfo *ModuleInfo, editorMode bool) *AlertBox {
 		alertBox.elm.Call("resizable", map[string]interface{}{
 			"containment": ".overlay",
 			"scroll":      false,
+			"stop":        js.FuncOf(alertBox.onStop),
 			"handles": map[string]interface{}{
 				"nw": fmt.Sprintf(".nw%d", alertBox.ID),
 				"ne": fmt.Sprintf(".ne%d", alertBox.ID),
@@ -81,21 +84,34 @@ func initAlertBox(moduleInfo *ModuleInfo, editorMode bool) *AlertBox {
 			},
 		})
 
-		alertBox.elm.Call("draggable", map[string]interface{}{"containment": ".overlay"})
+		alertBox.elm.Call("draggable", map[string]interface{}{
+			"stop":        js.FuncOf(alertBox.onStop),
+			"containment": ".overlay",
+		})
 	}
 
 	return alertBox
 }
 
-func (alertBox *AlertBox) EventHandler() *ModuleInfo {
-	for {
-		if alertBox.busy {
-			continue
-		}
-		event := <-alertBox.eventChan
-		switch event.Type {
-		case TestEvent:
+func (alertBox *AlertBox) onStop(this js.Value, args []js.Value) interface{} {
+	top := alertBox.elm.Call("css", "top").String()
+	alertBox.Info.Top, _ = strconv.Atoi(top[:len(top)-2])
+	left := alertBox.elm.Call("css", "left").String()
+	alertBox.Info.Left, _ = strconv.Atoi(left[:len(left)-2])
+	width := alertBox.elm.Call("css", "width").String()
+	alertBox.Info.Width, _ = strconv.Atoi(width[:len(width)-2])
+	height := alertBox.elm.Call("css", "height").String()
+	alertBox.Info.Height, _ = strconv.Atoi(height[:len(height)-2])
+	return nil
+}
 
+func (alertBox *AlertBox) Update() {
+	if len(alertBox.events) > 0 && !alertBox.busy {
+		event := alertBox.events[0]
+		alertBox.events = alertBox.events[1:]
+
+		switch event.Type {
+		case InvalidEvent:
 		}
 	}
 }
@@ -105,5 +121,22 @@ func (alertBox *AlertBox) GetInfo() *ModuleInfo {
 }
 
 func (alertBox *AlertBox) SendEvent(event *EventStruct) {
-	alertBox.eventChan <- event
+	alertBox.events = append(alertBox.events, event)
+}
+
+func (alertBox *AlertBox) GetElement() js.Value {
+	return alertBox.elm
+}
+
+func (alertBox *AlertBox) Destroy() {
+	alertBox.elm.Call("remove")
+	alertBox = nil
+}
+
+func (alertBox *AlertBox) UpdateInfo(info *ModuleInfo) {
+	alertBox.Info = info
+	alertBox.elm.Call("css", "top", info.Top)
+	alertBox.elm.Call("css", "left", info.Left)
+	alertBox.elm.Call("css", "width", info.Width)
+	alertBox.elm.Call("css", "height", info.Height)
 }
