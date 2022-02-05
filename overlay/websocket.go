@@ -6,27 +6,13 @@ import (
 	"syscall/js"
 )
 
-type MessageHandler func(msg *MessageStruct) error
-
-type MessageType int
+type MessageHandler func(msg *EventStruct) error
 
 type WebsocketConn struct {
 	ws         js.Value
 	MsgHandler MessageHandler
 	Ready      bool
 }
-
-type MessageStruct struct {
-	Type    MessageType
-	Overlay *OverlayStruct
-}
-
-const (
-	InvalidMessage = MessageType(iota)
-	GetOverlay
-	OverlayInfo
-	SaveOverlay
-)
 
 func newWebsocket(conURL string) *WebsocketConn {
 	conn := &WebsocketConn{}
@@ -44,7 +30,7 @@ func (conn *WebsocketConn) MessageHandler(handler MessageHandler) {
 func (conn *WebsocketConn) Open(this js.Value, args []js.Value) interface{} {
 	fmt.Println("WS Connection Opened")
 	conn.Ready = true
-	toSend := &MessageStruct{
+	toSend := &EventStruct{
 		Type: GetOverlay,
 	}
 
@@ -66,8 +52,8 @@ func (conn *WebsocketConn) Error(this js.Value, args []js.Value) interface{} {
 func (conn *WebsocketConn) Message(this js.Value, args []js.Value) interface{} {
 	event := args[0]
 	data := event.Get("data").String()
-	
-	msg := &MessageStruct{}
+
+	msg := &EventStruct{}
 	err := json.Unmarshal([]byte(data), msg)
 	if err != nil {
 		fmt.Println("Error unmarshalling message:", err)

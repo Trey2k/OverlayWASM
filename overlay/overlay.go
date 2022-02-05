@@ -35,7 +35,7 @@ func NewOverlay(host string, key string, editorMode bool) *OverlayStruct {
 	return overlay
 }
 
-func (overlay *OverlayStruct) HandleMessage(msg *MessageStruct) error {
+func (overlay *OverlayStruct) HandleMessage(msg *EventStruct) error {
 	switch msg.Type {
 	// Return is called after we call getOverlay
 	case OverlayInfo:
@@ -47,7 +47,13 @@ func (overlay *OverlayStruct) HandleMessage(msg *MessageStruct) error {
 
 		return nil
 	default:
-		return fmt.Errorf("unknown or message type: %d\n%v", msg.Type, msg)
+		for _, v := range overlay.Modules {
+			v.SendEvent(msg)
+		}
+
+		for _, v := range overlay.NewModules {
+			v.SendEvent(msg)
+		}
 	}
 	return nil
 }
@@ -118,7 +124,7 @@ func (overlay *OverlayStruct) Update(this js.Value, args []js.Value) interface{}
 		v.Update()
 	}
 
-	for _, v := range overlay.Modules {
+	for _, v := range overlay.NewModules {
 		v.Update()
 	}
 

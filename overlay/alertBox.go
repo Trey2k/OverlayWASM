@@ -111,9 +111,28 @@ func (alertBox *AlertBox) Update() {
 		alertBox.events = alertBox.events[1:]
 
 		switch event.Type {
-		case InvalidEvent:
+		case TwitchFollow:
+			alertBox.handleFollow(event)
 		}
 	}
+}
+
+func (alertBox *AlertBox) handleFollow(event *EventStruct) {
+	alertBox.busy = true
+
+	alertBox.elm.Call("children", ".alertBox").Call("append", fmt.Sprintf(`
+		<img src="%[1]s" class="viewerPFP">
+		<span class="viewerName">Thanks for following %[2]s!</span>
+	`, event.Data.ProfilePicture, event.Data.DisplayName))
+
+	js.Global().Call("setTimeout", js.FuncOf(alertBox.ClearEvent), 10*1000)
+}
+
+func (alertBox *AlertBox) ClearEvent(this js.Value, args []js.Value) interface{} {
+	alertBox.elm.Call("children", ".alertBox").Call("children", ".viewerPFP").Call("remove")
+	alertBox.elm.Call("children", ".alertBox").Call("children", ".viewerName").Call("remove")
+	alertBox.busy = false
+	return nil
 }
 
 func (alertBox *AlertBox) GetInfo() *ModuleInfo {

@@ -1,17 +1,22 @@
 package overlay
 
-type EventType int
-
 type EventStruct struct {
-	Type EventType
-	Data TwitchEventStruct
+	Type    EventType
+	Overlay *OverlayStruct
+	WSid    int
+	Data    TwitchEventStruct
 }
+
+type EventType int
 
 const (
 	InvalidEvent = EventType(iota)
 	TestEvent
 	TwitchMessageEvent
 	TwitchFollow
+	GetOverlay
+	OverlayInfo
+	SaveOverlay
 )
 
 type TwitchEventStruct struct {

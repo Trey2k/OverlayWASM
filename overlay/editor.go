@@ -25,7 +25,7 @@ func (overlay *OverlayStruct) startEditor() {
 }
 
 func (overlay *OverlayStruct) Save(this js.Value, args []js.Value) interface{} {
-	msg := MessageStruct{
+	msg := &EventStruct{
 		Type:    SaveOverlay,
 		Overlay: overlay,
 	}
